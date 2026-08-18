@@ -1,0 +1,25 @@
+# Check only — never fixes, formats, or otherwise touches your code.
+# Bypass once with:  git push --no-verify
+#
+# Checks the working tree, not the commits being pushed. A dirty tree, or a branch
+# whose commits differ from what's on disk, gives results that don't describe what
+# is actually going up.
+
+total=3
+step=0
+
+run_step() {
+  step=$((step + 1))
+  name="$1"
+  shift
+  echo "[pre-push $step/$total] $name..."
+  if ! "$@"; then
+    echo "[pre-push $step/$total] $name failed"
+    exit 1
+  fi
+  echo "[pre-push $step/$total] $name passed"
+}
+
+run_step "typecheck" npm run --silent typecheck
+run_step "lint" npm run --silent lint
+run_step "test" npm test --silent

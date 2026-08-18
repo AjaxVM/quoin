@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quoin — no-build example</title>
+</head>
+<body>
+<!--
+  No bundler. `npm run build` first, then serve this directory over http(s) — module
+  scripts don't load from a bare file:// URL, so `npx serve examples` (or any static
+  server) rather than double-clicking the file. That's a browser module-loading rule,
+  not anything Quoin imposes; once served, this is the whole story: one <script
+  type="module"> importing straight from dist/, no build step of its own.
+-->
+<h1>Quoin, loaded straight from dist/</h1>
+<p id="output">Loading…</p>
+<script type="module">
+  import { resolver, ok, createScope } from '../dist/index.js'
+
+  const getGreeting = resolver('getGreeting', async (params) => ok(`it works, ${params.name}`))
+  const scope = createScope({})
+
+  const result = await getGreeting({ name: 'world' }, scope)
+  document.getElementById('output').textContent = result.success ? result.data : 'it failed'
+</script>
+</body>
+</html>
