@@ -2,12 +2,12 @@
 
 **A pattern for modelling and composing data access, exposed as a library.**
 
+> A quoin is the dressed stone at a building's corner, the piece that squares everything else up.
+
 Data access grows messier as an application scales: every new source and integration adds to a
 maintenance burden that compounds over time. *Quoin* is the pattern I use to keep it uniform.
 Every read and write follows the same form, and complex results are built by composing simpler
 ones.
-
-> A quoin is the dressed stone at a building's corner, the piece that squares everything else up.
 
 Quoin is built on one primitive — the resolver — and everything else augments it. A **mutator**
 is a resolver that changes data instead of only returning it. A **composite** is a resolver that
@@ -15,6 +15,8 @@ composes access to multiple data points instead of one. An **iterative resolver*
 different contract — a stream instead of a single result — but the same core interface.
 
 ## Why
+
+**TODO:** This doesn't quite flow as correct now, since it is interrupted by the quote/intro now above.
 
 That maintenance burden shows up as the same handful of symptoms.
 
@@ -35,6 +37,7 @@ Quoin makes the layer uniform enough to reason about:
   position, so "the profile endpoint is slow" becomes "`getPostsByUserId` is slow".
 
 **TODO:** This should also get a human rewrite, the focus here should be on the fact this is encouraging functional programming patterns with a procedural, reproduceable flow
+
 No registry, no DI container. Things are created and passed in, and operate on what they were
 passed.
 
