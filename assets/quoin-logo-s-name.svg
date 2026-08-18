@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="209 260 482 610">
+  <g>
+    <polygon points="450.00,480.00 562.58,415.00 562.58,545.00 450.00,610.00" fill="#1f214c" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="337.42,415.00 450.00,480.00 450.00,610.00 337.42,545.00" fill="#161735" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="450.00,350.00 562.58,415.00 450.00,480.00 337.42,415.00" fill="#1f214c" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="562.58,545.00 675.17,480.00 675.17,610.00 562.58,675.00" fill="#1f214c" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="450.00,480.00 562.58,545.00 562.58,675.00 450.00,610.00" fill="#161735" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="562.58,415.00 675.17,480.00 562.58,545.00 450.00,480.00" fill="#1f214c" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="337.42,545.00 450.00,480.00 450.00,610.00 337.42,675.00" fill="#1f214c" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="224.83,480.00 337.42,545.00 337.42,675.00 224.83,610.00" fill="#161735" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="337.42,415.00 450.00,480.00 337.42,545.00 224.83,480.00" fill="#1f214c" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="450.00,385.00 532.27,337.50 532.27,432.50 450.00,480.00" fill="#8f94a3" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="367.73,337.50 450.00,385.00 450.00,480.00 367.73,432.50" fill="#646872" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="450.00,290.00 532.27,337.50 450.00,385.00 367.73,337.50" fill="#8f94a3" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="532.27,432.50 614.54,385.00 614.54,480.00 532.27,527.50" fill="#8f94a3" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="450.00,385.00 532.27,432.50 532.27,527.50 450.00,480.00" fill="#646872" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="532.27,337.50 614.54,385.00 532.27,432.50 450.00,385.00" fill="#8f94a3" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="413.63,459.00 450.00,438.00 450.00,480.00 413.63,501.00" fill="#d6b751" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="377.25,438.00 413.63,459.00 413.63,501.00 377.25,480.00" fill="#968039" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="413.63,417.00 450.00,438.00 413.63,459.00 377.25,438.00" fill="#d6b751" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="486.37,364.00 522.75,343.00 522.75,385.00 486.37,406.00" fill="#d6b751" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="450.00,343.00 486.37,364.00 486.37,406.00 450.00,385.00" fill="#968039" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="486.37,322.00 522.75,343.00 486.37,364.00 450.00,343.00" fill="#d6b751" stroke="#f1efea" stroke-width="3.5" stroke-linejoin="round"/>
+  </g>
+  <g>
+    <text x="450" y="805" font-family="'Space Grotesk','Poppins','Segoe UI',Arial,sans-serif" font-size="100" font-weight="800" text-anchor="middle" letter-spacing="-1" fill="#161735" fill-opacity="1" stroke="#f1efea" stroke-opacity="1" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round" paint-order="stroke fill">Quoin</text>
+  </g>
+</svg>

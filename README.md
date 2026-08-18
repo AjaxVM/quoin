@@ -1,4 +1,4 @@
-# Quoin
+<img src="./assets/quoin-logo-h-name.svg" height="128" alt="Quoin" />
 
 **A pattern for modelling and composing data access, exposed as a library.**
 
