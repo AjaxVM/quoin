@@ -1,4 +1,4 @@
-<img src="./quoin-logo.svg" width="180" alt="Quoin" />
+<img src="./assets/quoin-logo-h-name.svg" height="128" alt="Quoin" />
 
 **A pattern for modelling and composing data access, exposed as a library.**
 
@@ -457,7 +457,3 @@ npm test
 
 Conventions (including where AI-assisted implementation fits) are in
 [CONTRIBUTING.md](./CONTRIBUTING.md). Licensed [MIT](./LICENSE).
-
-<p align="center">
-  <img src="./quoin-logo-with-tagline.svg" width="280" alt="Quoin — a pattern for composing data access" />
-</p>
