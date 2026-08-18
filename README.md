@@ -9,13 +9,34 @@ ones.
 
 > A quoin is the dressed stone at a building's corner, the piece that squares everything else up.
 
-## Porting this
+Quoin is built on one primitive — the resolver — and everything else augments it. A **mutator**
+is a resolver that changes data instead of only returning it. A **composite** is a resolver that
+composes access to multiple data points instead of one. An **iterative resolver** carries a
+different contract — a stream instead of a single result — but the same core interface.
 
-This is an idea as much as an implementation. If you want it in Go, Python, or Rust, please take
-it. The TypeScript package here is small on purpose, and most of what matters is decisions rather
-than code.
+## Why
 
-MIT licensed. A link back to this repo is all I'd ask, and I'd love ideas contributed back.
+That maintenance burden shows up as the same handful of symptoms.
+
+**TODO:** THis text is not quite what I'd write, need's a human editor pass:
+
+Some functions take a connection, some close over one. Some are `findUser`, some `getUserRow`, some `loadUserWithOrders`.
+When an endpoint gets slow there's no way to ask which part is slow, because there are no parts.
+And failure handling ends up ad hoc: some paths throw, some return null, and callers guess.
+
+Quoin makes the layer uniform enough to reason about:
+
+- **One shape.** `(params, scope)` for reads, `(params, value, scope)` for writes.
+- **Anticipated failure is data.** A 404, a permission denial, an API outage: those come back as
+  values, not exceptions each caller must remember to catch.
+- **Composition is declared.** A call either touches one data artifact directly or composes other
+  calls. The library tells you when the two disagree.
+- **The chain is observable.** Turn metrics on and every call is timed and attributed to its
+  position, so "the profile endpoint is slow" becomes "`getPostsByUserId` is slow".
+
+**TODO:** This should also get a human rewrite, the focus here should be on the fact this is encouraging functional programming patterns with a procedural, reproduceable flow
+No registry, no DI container. Things are created and passed in, and operate on what they were
+passed.
 
 ## The whole thing in one example
 
@@ -60,32 +81,13 @@ if (result.success) {
 }
 ```
 
-Parameters are annotated rather than passed as type arguments. This is what lets Quoin infer both
-the data and the error type from what the body returns.
+## Porting this
 
-That's the entire surface area. Everything below is detail on the four pieces: **params, value,
-and scope**; the **result**; **base vs composite**; and what the library does with the
-names you gave it.
+This is an idea as much as an implementation. If you want it in Go, Python, or Rust, please take
+it. The TypeScript package here is small on purpose, and most of what matters is decisions rather
+than code.
 
-## Why
-
-That maintenance burden shows up as the same handful of symptoms. Some functions take a
-connection, some close over one. Some are `findUser`, some `getUserRow`, some `loadUserWithOrders`.
-When an endpoint gets slow there's no way to ask which part is slow, because there are no parts.
-And failure handling ends up ad hoc: some paths throw, some return null, and callers guess.
-
-Quoin makes the layer uniform enough to reason about:
-
-- **One shape.** `(params, scope)` for reads, `(params, value, scope)` for writes.
-- **Anticipated failure is data.** A 404, a permission denial, an API outage: those come back as
-  values, not exceptions each caller must remember to catch.
-- **Composition is declared.** A call either touches one data artifact directly or composes other
-  calls. The library tells you when the two disagree.
-- **The chain is observable.** Turn metrics on and every call is timed and attributed to its
-  position, so "the profile endpoint is slow" becomes "`getPostsByUserId` is slow".
-
-No registry, no DI container. Things are created and passed in, and operate on what they were
-passed.
+MIT licensed. A link back to this repo is appreciated, and I'd love contributions of any improvements back to this project!
 
 ## Parameters
 
@@ -160,6 +162,60 @@ An API returning 500 is expected traffic, so it's a `fail`. A database row whose
 the schema is a bug, so it throws. The wrapper never catches. Catching would merge those two and
 silence the second.
 
+## Base vs. composite
+
+A composite isn't a different mechanism. It's the same shape with a different label. The factories
+are separate only so the label can't be forgotten:
+
+| | reads | writes |
+|---|---|---|
+| touches one data artifact | `resolver` | `mutator` |
+| calls other resolvers/mutators | `compositeResolver` | `compositeMutator` |
+
+Every call carries its label: `getUserWithOrders.info` → `{ name, kind: 'composite' }`.
+
+A composite's own calls don't have to be base themselves — a composite can call other composites
+just as easily, layering a wide result out of narrower composed ones instead of reimplementing what
+they already do. The guard doesn't care which; it only ever watches for a *base* resolver making
+that jump.
+
+Mislabelling is the easy mistake — a base resolver quietly grows a call to another resolver. Quoin
+notices:
+
+```ts
+const getProfile = resolver('getProfile', async (params: { id: number }, scope: IAppScope) => {
+  const user = await getUser(params, scope);   // this makes it a composite
+  return user.success ? ok(decorate(user.data)) : user;
+});
+
+// quoin: "getProfile" is declared base but called getUser.
+//        Use compositeResolver()/compositeMutator().
+```
+
+Set the response when you build the scope, choosing `'warn'` (default), `'error'`, or `'off'`:
+
+```ts
+createScope({ db }, { guard: 'error' });
+```
+
+It reports after the body finishes, so the work takes effect before anything is raised, and a
+failing body's own error always wins.
+
+Each call hands its inner function a derived scope carrying that call's frame, so a nested call
+arrives already knowing its parent. Call-chain tracking lives entirely in that derived scope, not
+in any state outside it. A call's behaviour is fully determined by what it's given: it behaves the
+same whether or not it ran inside a `Promise.all`, and concurrent siblings are never attributed to
+each other.
+
+The guard sees calls *between* resolvers, not what happens inside one. A base resolver can make as
+many raw calls as it needs, as long as they're all in service of the one data artifact it's defined
+around: a transaction wrapper around a single upsert, a retry, a config toggle, whatever the call
+requires. It stops being base the moment those calls reach separate data artifacts (a user row and
+a permissions row from the same database, say), even when that still happens through one raw call.
+The guard can't see that distinction either way: it only tracks calls to other Quoin resolvers, so a
+body's internal calls are invisible to it regardless of what they touch. Declaring correctly is on
+you: Quoin doesn't define how small "one data artifact" is for your domain.
+
 ### Composites are not atomic
 
 A composite mutator that writes and then calls something that fails has **partially applied**: the
@@ -224,60 +280,6 @@ if (!posts.success) return posts;
 
 A call site can do exactly the same thing when it wants several resolvers at once.
 
-## Base and composite
-
-A composite isn't a different mechanism. It's the same shape with a different label. The factories
-are separate only so the label can't be forgotten:
-
-| | reads | writes |
-|---|---|---|
-| touches one data artifact | `resolver` | `mutator` |
-| calls other resolvers/mutators | `compositeResolver` | `compositeMutator` |
-
-Every call carries its label: `getUserWithOrders.info` → `{ name, kind: 'composite' }`.
-
-A composite's own calls don't have to be base themselves — a composite can call other composites
-just as easily, layering a wide result out of narrower composed ones instead of reimplementing what
-they already do. The guard doesn't care which; it only ever watches for a *base* resolver making
-that jump.
-
-Mislabelling is the easy mistake — a base resolver quietly grows a call to another resolver. Quoin
-notices:
-
-```ts
-const getProfile = resolver('getProfile', async (params: { id: number }, scope: IAppScope) => {
-  const user = await getUser(params, scope);   // this makes it a composite
-  return user.success ? ok(decorate(user.data)) : user;
-});
-
-// quoin: "getProfile" is declared base but called getUser.
-//        Use compositeResolver()/compositeMutator().
-```
-
-Set the response when you build the scope, choosing `'warn'` (default), `'error'`, or `'off'`:
-
-```ts
-createScope({ db }, { guard: 'error' });
-```
-
-It reports after the body finishes, so the work takes effect before anything is raised, and a
-failing body's own error always wins.
-
-Each call hands its inner function a derived scope carrying that call's frame, so a nested call
-arrives already knowing its parent. Call-chain tracking lives entirely in that derived scope, not
-in any state outside it. A call's behaviour is fully determined by what it's given: it behaves the
-same whether or not it ran inside a `Promise.all`, and concurrent siblings are never attributed to
-each other.
-
-The guard sees calls *between* resolvers, not what happens inside one. A base resolver can make as
-many raw calls as it needs, as long as they're all in service of the one data artifact it's defined
-around: a transaction wrapper around a single upsert, a retry, a config toggle, whatever the call
-requires. It stops being base the moment those calls reach separate data artifacts (a user row and
-a permissions row from the same database, say), even when that still happens through one raw call.
-The guard can't see that distinction either way: it only tracks calls to other Quoin resolvers, so a
-body's internal calls are invisible to it regardless of what they touch. Declaring correctly is on
-you: Quoin doesn't define how small "one data artifact" is for your domain.
-
 ## Streaming
 
 A body that yields values over time instead of resolving once (pages, cursors, anything a caller
@@ -328,6 +330,21 @@ as two entries you can tell apart. `durationMs` includes nested calls, so concur
 overlap and won't sum to their parent. Metrics record on every path (success, a returned failure,
 or a throw) but don't duplicate the outcome itself: that's already known to the caller directly,
 either from the return value or, in a composite, from each step it checks.
+
+**TODO:** This has to be solved - currently the metrics pool will grow and grow and grow, and since we encourage one scope in the app, it will grow insanely large.
+Options include:
+- a metrics wrapper, that will track metrics onto the scope as they are passed and collect/present as part of the output alongside the result from the resolver itself, ie `runWithMetrics(getUserResolver(...)) => { metrics, result }`
+  - This is probably cleanest, and leans toward a wrapper/transform concept I had in my first implementation but abandoned when it was unneeded later
+  - basically allowing for different ways of entering the resolver execution, this time with metrics, but the metrics are recorded onto scope, but the scope is actually unique to the call and derived from the input scope at time of calling - this is actually a pretty cool positive addition
+  - It also allows for standardizing a metrics response that still carries whatever the resolver response is as a nested value, so all the typing carries through and it makes metrics useful when wanted explicitly instead of just a config that then does nothing without _consuming_ the actual data
+  - This also opens up the idea of a transformer pattern in general - where the resolver fetches data, and the transformer actually coerces that into a new shape - I have used that before when mapping a database row into a typed object with properties and methods
+    - this is also prety powerful for composites since in general the transformers kind of stack as well, or at least the final shape once you have normalized the data output can
+- metrics reset on call
+  - allows fetching from scope but is still ugly and breaks our no magic rule
+- metrics enabled as an option
+  - I had rejected the idea of an options block as a standard param, this would lean back into adding it
+  - the pro is that the first arg could go back to purely identity, and options are a combo of reserved quoin options + custom options
+  - the con here is that it means the basic function shape changes, and options have to be supplied down the tree/respected in each resolver manually or magically
 
 ## Optimized composites
 
