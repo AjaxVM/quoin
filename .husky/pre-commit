@@ -1,0 +1,21 @@
+# Fast checks only - we only want to lint and test core library
+# Bypass once with:  git commit --no-verify
+
+total=3
+step=0
+
+run_step() {
+  step=$((step + 1))
+  name="$1"
+  shift
+  echo "[pre-commit $step/$total] $name..."
+  if ! "$@"; then
+    echo "[pre-commit $step/$total] $name failed"
+    exit 1
+  fi
+  echo "[pre-commit $step/$total] $name passed"
+}
+
+run_step "typecheck" npm run --silent typecheck:src
+run_step "lint" npm run --silent lint:src
+run_step "test" npm run --silent test:src

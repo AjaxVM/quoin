@@ -40,12 +40,14 @@
   "scripts": {
     "build": "npm run clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "typecheck:browser": "tsc -p tsconfig.browser.json --noEmit",
+    "typecheck:src": "tsc -p tsconfig.build.json --noEmit",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:src": "cross-env NODE_OPTIONS=--experimental-vm-modules jest src",
     "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "clean": "rimraf dist",
     "lint": "eslint .",
+    "lint:src": "eslint src",
     "lint:fix": "eslint . --fix",
     "prepare": "husky"
   },

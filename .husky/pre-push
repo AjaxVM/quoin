@@ -5,7 +5,7 @@
 # whose commits differ from what's on disk, gives results that don't describe what
 # is actually going up.
 
-total=3
+total=4
 step=0
 
 run_step() {
@@ -23,3 +23,6 @@ run_step() {
 run_step "typecheck" npm run --silent typecheck
 run_step "lint" npm run --silent lint
 run_step "test" npm test --silent
+# build, not just typecheck:src: tsconfig.build.json's types:[] is what actually
+# proves src/ has no Node/Jest dependency, and this is the config that ships.
+run_step "build" npm run --silent build

@@ -2,20 +2,60 @@
 
 **A pattern for modelling and composing data access, exposed as a library.**
 
+> A quoin is the dressed stone at a building's corner, the piece that squares everything else up.
+
 Data access grows messier as an application scales: every new source and integration adds to a
 maintenance burden that compounds over time. *Quoin* is the pattern I use to keep it uniform.
 Every read and write follows the same form, and complex results are built by composing simpler
 ones.
 
-> A quoin is the dressed stone at a building's corner, the piece that squares everything else up.
+Quoin is built on one primitive — the resolver — and everything else augments it. A **mutator**
+is a resolver that changes data instead of only returning it. A **composite** is a resolver that
+composes access to multiple data points instead of one. An **iterative resolver** carries a
+different contract — a stream instead of a single result — but the same core interface.
 
-## Porting this
+## Why
 
-This is an idea as much as an implementation. If you want it in Go, Python, or Rust, please take
-it. The TypeScript package here is small on purpose, and most of what matters is decisions rather
-than code.
+**TODO:** This doesn't quite flow as correct now, since it is interrupted by the quote/intro now above.
 
-MIT licensed. A link back to this repo is all I'd ask, and I'd love ideas contributed back.
+> **Suggestion:** A messy data access layer has a shape. The same handful of symptoms show up
+> everywhere:
+
+That maintenance burden shows up as the same handful of symptoms.
+
+**TODO:** THis text is not quite what I'd write, need's a human editor pass:
+
+> **Suggestion:** Every function names and shapes its access differently: some take a connection,
+> some close over one; some are `findUser`, others `getUserRow` or `loadUserWithOrders`. Nothing is
+> instrumented, so a slow endpoint can't be traced to a part — there are no parts to point at. And
+> failure handling is ad hoc: some paths throw, some return `null`, and callers learn the difference
+> by trial and error.
+
+Some functions take a connection, some close over one. Some are `findUser`, some `getUserRow`, some `loadUserWithOrders`.
+When an endpoint gets slow there's no way to ask which part is slow, because there are no parts.
+And failure handling ends up ad hoc: some paths throw, some return null, and callers guess.
+
+Quoin makes the layer uniform enough to reason about:
+
+- **One shape.** `(params, scope)` for reads, `(params, value, scope)` for writes.
+- **Anticipated failure is data.** A 404, a permission denial, an API outage: those come back as
+  values, not exceptions each caller must remember to catch.
+- **Composition is declared.** A call either touches one data artifact directly or composes other
+  calls. The library tells you when the two disagree.
+- **The chain is observable.** Turn metrics on and every call is timed and attributed to its
+  position, so "the profile endpoint is slow" becomes "`getPostsByUserId` is slow".
+
+**TODO:** This should also get a human rewrite, the focus here should be on the fact this is encouraging functional programming patterns with a procedural, reproduceable flow
+
+> **Suggestion:** This is deliberately functional and procedural: a call runs exactly as invoked,
+> nothing more, nothing implied. That's the gain — execution stays traceable and consistent,
+> because the same inputs always produce the same call graph, and every effect traces back to a
+> specific call rather than to a reaction fired somewhere else that's hard to pin down. Everything
+> a call needs — connections, clients, session — is created once and passed in explicitly, so a
+> call operates on only what it was handed.
+
+No registry, no DI container. Things are created and passed in, and operate on what they were
+passed.
 
 ## The whole thing in one example
 
@@ -59,33 +99,6 @@ if (result.success) {
   showProblem(result.error);
 }
 ```
-
-Parameters are annotated rather than passed as type arguments. This is what lets Quoin infer both
-the data and the error type from what the body returns.
-
-That's the entire surface area. Everything below is detail on the four pieces: **params, value,
-and scope**; the **result**; **base vs composite**; and what the library does with the
-names you gave it.
-
-## Why
-
-That maintenance burden shows up as the same handful of symptoms. Some functions take a
-connection, some close over one. Some are `findUser`, some `getUserRow`, some `loadUserWithOrders`.
-When an endpoint gets slow there's no way to ask which part is slow, because there are no parts.
-And failure handling ends up ad hoc: some paths throw, some return null, and callers guess.
-
-Quoin makes the layer uniform enough to reason about:
-
-- **One shape.** `(params, scope)` for reads, `(params, value, scope)` for writes.
-- **Anticipated failure is data.** A 404, a permission denial, an API outage: those come back as
-  values, not exceptions each caller must remember to catch.
-- **Composition is declared.** A call either touches one data artifact directly or composes other
-  calls. The library tells you when the two disagree.
-- **The chain is observable.** Turn metrics on and every call is timed and attributed to its
-  position, so "the profile endpoint is slow" becomes "`getPostsByUserId` is slow".
-
-No registry, no DI container. Things are created and passed in, and operate on what they were
-passed.
 
 ## Parameters
 
@@ -140,9 +153,9 @@ Three keys, nothing else. Build them with `ok(data)` and `fail(error)`; both arg
 optional, so `ok()` covers a call with nothing to hand back and `fail()` covers a plain refusal.
 Checking `success` narrows, so `data` is present and typed in the branch where it exists.
 
-**Quoin does not define an error shape.** A call might report a structured error, a message, an HTTP
-status, or nothing at all. Plenty of unsuccessful paths aren't strictly errors. Whatever a body
-returns becomes that call's error type, inferred, with no generic at the definition site.
+**Defining the error shape is the implementer's job:** every resolver may sit over a different data
+source with its own failure modes, so a call might report a structured error, a message, an HTTP
+status, or nothing at all. Plenty of unsuccessful paths aren't strictly errors.
 
 Defining one for your app is worth it as soon as callers need to branch: a `code` to switch on, a
 human message, maybe `retryable` or what a partial failure already applied. `examples/quoin.ts`
@@ -160,74 +173,13 @@ An API returning 500 is expected traffic, so it's a `fail`. A database row whose
 the schema is a bug, so it throws. The wrapper never catches. Catching would merge those two and
 silence the second.
 
-### Composites are not atomic
+## Base vs. composite
 
-A composite mutator that writes and then calls something that fails has **partially applied**: the
-write stands. That follows from what a composite actually is. A resolver or mutator counts as
-composite the moment its own implementation touches more than one data artifact — not only when it
-calls other resolvers to do so, but also when it reaches multiple artifacts directly in a call of
-its own, say a SQL join across tables it queries itself. Composing calls to separate resolvers is
-simply the common way to build one. Each call is its own operation, succeeding or failing
-independently, with nothing tying them together: a composite built this way only knows the
-interface of what it calls, never the implementation.
-
-An **optimized** composite is still a composite by that same definition: it touches the same
-multiple artifacts, just reached directly in its own query or transaction rather than through calls
-to other resolvers — one query standing in for what several resolver calls would otherwise do, same
-shape and effect, just a more complex implementation underneath. Because it's the one reaching the
-artifacts itself, it's also the one place atomicity becomes available: wrap that direct reach in a
-transaction (or use an endpoint that's already atomic) and the composite is atomic. A composite
-built by calling other resolvers can't do that; it never has direct access to wrap.
-
-A single call to a purpose-built endpoint that already returns a joined shape looks similar from the
-outside, but isn't this: the joining happened on the far side of a call this resolver doesn't
-control, so from here it's one artifact from one source — base, not composite, no matter how much
-composing produced that artifact upstream. [Optimized composites](#optimized-composites) below has
-the full local-vs-remote distinction.
-
-A base resolver never runs into the atomicity question at all. Touching exactly one artifact —
-whatever shape it arrives in — there's nothing to coordinate.
-
-Whether to stop, roll forward, or compensate is that composite's business. Reporting accurately
-isn't optional:
-
-```ts
-const written = await setUserEmail(params, value, scope);
-if (!written.success) return written;                    // nothing applied
-
-const sent = await sendConfirmation(params, value, scope);
-if (!sent.success) {
-  // The email did change. Say so: a bare failure reads as "nothing happened".
-  return fail({
-    code: 'CONFIRMATION_FAILED',
-    message: 'Email updated but the confirmation could not be sent',
-    cause: sent.error,
-    applied: [setUserEmail.info.name],
-  });
-}
-```
-
-Each step is checked where it happens, because that's the only place that knows what the composite
-had already done by then. A failure with no `applied` means nothing landed, and callers rely on
-that, so a mutating composite has to keep that promise deliberately.
-
-For independent calls, fan out and check each. You keep which one failed:
-
-```ts
-const [user, posts] = await Promise.all([
-  getUser({ id }, scope),
-  getPosts({ userId: id }, scope),
-]);
-if (!user.success) return user;
-if (!posts.success) return posts;
-```
-
-A call site can do exactly the same thing when it wants several resolvers at once.
-
-## Base and composite
-
-A composite isn't a different mechanism. It's the same shape with a different label. The factories
-are separate only so the label can't be forgotten:
+A call's shape is identical whether it's base or composite — same signature either way. What decides
+which factory to reach for is what the call touches: one data artifact reached directly makes it
+base; more than one — whether reached by calling other resolvers or directly in one query — makes it
+composite. The factories exist as separate names only so that distinction gets declared up front
+instead of left for the reader to infer:
 
 | | reads | writes |
 |---|---|---|
@@ -269,14 +221,79 @@ in any state outside it. A call's behaviour is fully determined by what it's giv
 same whether or not it ran inside a `Promise.all`, and concurrent siblings are never attributed to
 each other.
 
-The guard sees calls *between* resolvers, not what happens inside one. A base resolver can make as
+The guard tracks calls between resolvers, to catch a base resolver crossing into composite territory
+it hasn't declared. A base resolver can make as
 many raw calls as it needs, as long as they're all in service of the one data artifact it's defined
 around: a transaction wrapper around a single upsert, a retry, a config toggle, whatever the call
 requires. It stops being base the moment those calls reach separate data artifacts (a user row and
 a permissions row from the same database, say), even when that still happens through one raw call.
 The guard can't see that distinction either way: it only tracks calls to other Quoin resolvers, so a
 body's internal calls are invisible to it regardless of what they touch. Declaring correctly is on
-you: Quoin doesn't define how small "one data artifact" is for your domain.
+you: "one data artifact" is a boundary you set for your domain — Quoin can't infer it for you.
+
+### Composites are not atomic
+
+A composite mutator that writes and then calls something that fails has **partially applied**: the
+write stands. That follows from what a composite actually is. A resolver or mutator counts as
+composite the moment its own implementation touches more than one data artifact — not only when it
+calls other resolvers to do so, but also when it reaches multiple artifacts directly in a call of
+its own, say a SQL join across tables it queries itself. Composing calls to separate resolvers is
+simply the common way to build one. Each call is its own operation, succeeding or failing
+independently, with nothing tying them together: a composite built this way only knows the
+interface of what it calls, never the implementation.
+
+An **optimized** composite is still a composite by that same definition: it touches the same
+multiple artifacts, just reached directly in its own query or transaction rather than through calls
+to other resolvers — one query standing in for what several resolver calls would otherwise do, same
+shape and effect, just a more complex implementation underneath. Because it's the one reaching the
+artifacts itself, it's also the one place atomicity becomes available: wrap that direct reach in a
+transaction (or use an endpoint that's already atomic) and the composite is atomic. A composite
+built by calling other resolvers can't do that; it never has direct access to wrap.
+
+A single call to a purpose-built endpoint that already returns a joined shape looks similar from the
+outside, but is a different case: the joining happened on the far side of a call this resolver
+doesn't control, so from here it's one artifact from one source — base, not composite, no matter how
+much composing produced that artifact upstream. [Optimized composites](#optimized-composites) below
+has the full local-vs-remote distinction.
+
+A base resolver never runs into the atomicity question at all. Touching exactly one artifact —
+whatever shape it arrives in — there's nothing to coordinate.
+
+Whether to stop, roll forward, or compensate is that composite's business. Reporting accurately
+isn't optional:
+
+```ts
+const written = await setUserEmail(params, value, scope);
+if (!written.success) return written;                    // nothing applied
+
+const sent = await sendConfirmation(params, value, scope);
+if (!sent.success) {
+  // The email did change. Say so: a bare failure reads as "nothing happened".
+  return fail({
+    code: 'CONFIRMATION_FAILED',
+    message: 'Email updated but the confirmation could not be sent',
+    cause: sent.error,
+    applied: [setUserEmail.info.name],
+  });
+}
+```
+
+Each step is checked where it happens, because that's the only place that knows what the composite
+had already done by then. A failure with no `applied` means nothing landed, and callers rely on
+that, so a mutating composite has to keep that promise deliberately.
+
+For independent calls, fan out and check each. You keep which one failed:
+
+```ts
+const [user, posts] = await Promise.all([
+  getUser({ id }, scope),
+  getPosts({ userId: id }, scope),
+]);
+if (!user.success) return user;
+if (!posts.success) return posts;
+```
+
+A call site can do exactly the same thing when it wants several resolvers at once.
 
 ## Streaming
 
@@ -328,6 +345,27 @@ as two entries you can tell apart. `durationMs` includes nested calls, so concur
 overlap and won't sum to their parent. Metrics record on every path (success, a returned failure,
 or a throw) but don't duplicate the outcome itself: that's already known to the caller directly,
 either from the return value or, in a composite, from each step it checks.
+
+**TODO:** This has to be solved - currently the metrics pool will grow and grow and grow, and since we encourage one scope in the app, it will grow insanely large. Issue#5
+Options include:
+- a metrics wrapper, that will track metrics onto the scope as they are passed and collect/present as part of the output alongside the result from the resolver itself, ie `runWithMetrics(getUserResolver(...)) => { metrics, result }`
+  - This is probably cleanest, and leans toward a wrapper/transform concept I had in my first implementation but abandoned when it was unneeded later
+  - basically allowing for different ways of entering the resolver execution, this time with metrics, but the metrics are recorded onto scope, but the scope is actually unique to the call and derived from the input scope at time of calling - this is actually a pretty cool positive addition
+  - It also allows for standardizing a metrics response that still carries whatever the resolver response is as a nested value, so all the typing carries through and it makes metrics useful when wanted explicitly instead of just a config that then does nothing without _consuming_ the actual data
+  - This also opens up the idea of a transformer pattern in general - where the resolver fetches data, and the transformer actually coerces that into a new shape - I have used that before when mapping a database row into a typed object with properties and methods
+    - this is also prety powerful for composites since in general the transformers kind of stack as well, or at least the final shape once you have normalized the data output can
+- metrics reset on call
+  - allows fetching from scope but is still ugly and breaks our no magic rule
+- metrics enabled as an option
+  - I had rejected the idea of an options block as a standard param, this would lean back into adding it
+  - the pro is that the first arg could go back to purely identity, and options are a combo of reserved quoin options + custom options
+  - the con here is that it means the basic function shape changes, and options have to be supplied down the tree/respected in each resolver manually or magically
+
+> **Suggestion:** Of the three, the metrics wrapper looks cleanest/simplest to implement, understand,
+> and maintain — it doesn't reopen the options-block design already rejected above, and it doesn't
+> lean on scope-mutation-as-reset. Still open, and worth deciding explicitly rather than by default:
+> whether it wraps at definition time (`runWithMetrics(getUserResolver)`), at call time
+> (`runWithMetrics(getUserResolver(...))`), or needs to support both.
 
 ## Optimized composites
 
@@ -395,7 +433,7 @@ function they were given. The four `resolver`/`mutator` factories always return 
 the wrapped function is sync or async; the two `iterativeResolver` factories always return an
 `AsyncGenerator`.
 
-No error type: that's yours to define, and Quoin infers it from what your resolvers return.
+Error type: the implementer's per resolver, inferred from what it returns.
 
 ## Examples
 
@@ -452,6 +490,14 @@ no-build HTML page.
 npm install
 npm test
 ```
+
+## Porting this
+
+This is an idea as much as an implementation. If you want it in Go, Python, or Rust, please take
+it. The TypeScript package here is small on purpose, and most of what matters is decisions rather
+than code.
+
+MIT licensed. A link back to this repo is appreciated, and I'd love contributions of any improvements back to this project!
 
 ## Contributing
 
