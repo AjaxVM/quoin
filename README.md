@@ -18,9 +18,18 @@ different contract — a stream instead of a single result — but the same core
 
 **TODO:** This doesn't quite flow as correct now, since it is interrupted by the quote/intro now above.
 
+> **Suggestion:** A messy data access layer has a shape. The same handful of symptoms show up
+> everywhere:
+
 That maintenance burden shows up as the same handful of symptoms.
 
 **TODO:** THis text is not quite what I'd write, need's a human editor pass:
+
+> **Suggestion:** Every function names and shapes its access differently: some take a connection,
+> some close over one; some are `findUser`, others `getUserRow` or `loadUserWithOrders`. Nothing is
+> instrumented, so a slow endpoint can't be traced to a part — there are no parts to point at. And
+> failure handling is ad hoc: some paths throw, some return `null`, and callers learn the difference
+> by trial and error.
 
 Some functions take a connection, some close over one. Some are `findUser`, some `getUserRow`, some `loadUserWithOrders`.
 When an endpoint gets slow there's no way to ask which part is slow, because there are no parts.
@@ -37,6 +46,13 @@ Quoin makes the layer uniform enough to reason about:
   position, so "the profile endpoint is slow" becomes "`getPostsByUserId` is slow".
 
 **TODO:** This should also get a human rewrite, the focus here should be on the fact this is encouraging functional programming patterns with a procedural, reproduceable flow
+
+> **Suggestion:** This is deliberately functional and procedural: a call runs exactly as invoked,
+> nothing more, nothing implied. That's the gain — execution stays traceable and consistent,
+> because the same inputs always produce the same call graph, and every effect traces back to a
+> specific call rather than to a reaction fired somewhere else that's hard to pin down. Everything
+> a call needs — connections, clients, session — is created once and passed in explicitly, so a
+> call operates on only what it was handed.
 
 No registry, no DI container. Things are created and passed in, and operate on what they were
 passed.
@@ -83,14 +99,6 @@ if (result.success) {
   showProblem(result.error);
 }
 ```
-
-## Porting this
-
-This is an idea as much as an implementation. If you want it in Go, Python, or Rust, please take
-it. The TypeScript package here is small on purpose, and most of what matters is decisions rather
-than code.
-
-MIT licensed. A link back to this repo is appreciated, and I'd love contributions of any improvements back to this project!
 
 ## Parameters
 
@@ -145,9 +153,9 @@ Three keys, nothing else. Build them with `ok(data)` and `fail(error)`; both arg
 optional, so `ok()` covers a call with nothing to hand back and `fail()` covers a plain refusal.
 Checking `success` narrows, so `data` is present and typed in the branch where it exists.
 
-**Quoin does not define an error shape.** A call might report a structured error, a message, an HTTP
-status, or nothing at all. Plenty of unsuccessful paths aren't strictly errors. Whatever a body
-returns becomes that call's error type, inferred, with no generic at the definition site.
+**Defining the error shape is the implementer's job:** every resolver may sit over a different data
+source with its own failure modes, so a call might report a structured error, a message, an HTTP
+status, or nothing at all. Plenty of unsuccessful paths aren't strictly errors.
 
 Defining one for your app is worth it as soon as callers need to branch: a `code` to switch on, a
 human message, maybe `retryable` or what a partial failure already applied. `examples/quoin.ts`
@@ -167,8 +175,11 @@ silence the second.
 
 ## Base vs. composite
 
-A composite isn't a different mechanism. It's the same shape with a different label. The factories
-are separate only so the label can't be forgotten:
+A call's shape is identical whether it's base or composite — same signature either way. What decides
+which factory to reach for is what the call touches: one data artifact reached directly makes it
+base; more than one — whether reached by calling other resolvers or directly in one query — makes it
+composite. The factories exist as separate names only so that distinction gets declared up front
+instead of left for the reader to infer:
 
 | | reads | writes |
 |---|---|---|
@@ -210,14 +221,15 @@ in any state outside it. A call's behaviour is fully determined by what it's giv
 same whether or not it ran inside a `Promise.all`, and concurrent siblings are never attributed to
 each other.
 
-The guard sees calls *between* resolvers, not what happens inside one. A base resolver can make as
+The guard tracks calls between resolvers, to catch a base resolver crossing into composite territory
+it hasn't declared. A base resolver can make as
 many raw calls as it needs, as long as they're all in service of the one data artifact it's defined
 around: a transaction wrapper around a single upsert, a retry, a config toggle, whatever the call
 requires. It stops being base the moment those calls reach separate data artifacts (a user row and
 a permissions row from the same database, say), even when that still happens through one raw call.
 The guard can't see that distinction either way: it only tracks calls to other Quoin resolvers, so a
 body's internal calls are invisible to it regardless of what they touch. Declaring correctly is on
-you: Quoin doesn't define how small "one data artifact" is for your domain.
+you: "one data artifact" is a boundary you set for your domain — Quoin can't infer it for you.
 
 ### Composites are not atomic
 
@@ -239,10 +251,10 @@ transaction (or use an endpoint that's already atomic) and the composite is atom
 built by calling other resolvers can't do that; it never has direct access to wrap.
 
 A single call to a purpose-built endpoint that already returns a joined shape looks similar from the
-outside, but isn't this: the joining happened on the far side of a call this resolver doesn't
-control, so from here it's one artifact from one source — base, not composite, no matter how much
-composing produced that artifact upstream. [Optimized composites](#optimized-composites) below has
-the full local-vs-remote distinction.
+outside, but is a different case: the joining happened on the far side of a call this resolver
+doesn't control, so from here it's one artifact from one source — base, not composite, no matter how
+much composing produced that artifact upstream. [Optimized composites](#optimized-composites) below
+has the full local-vs-remote distinction.
 
 A base resolver never runs into the atomicity question at all. Touching exactly one artifact —
 whatever shape it arrives in — there's nothing to coordinate.
@@ -349,6 +361,12 @@ Options include:
   - the pro is that the first arg could go back to purely identity, and options are a combo of reserved quoin options + custom options
   - the con here is that it means the basic function shape changes, and options have to be supplied down the tree/respected in each resolver manually or magically
 
+> **Suggestion:** Of the three, the metrics wrapper looks cleanest/simplest to implement, understand,
+> and maintain — it doesn't reopen the options-block design already rejected above, and it doesn't
+> lean on scope-mutation-as-reset. Still open, and worth deciding explicitly rather than by default:
+> whether it wraps at definition time (`runWithMetrics(getUserResolver)`), at call time
+> (`runWithMetrics(getUserResolver(...))`), or needs to support both.
+
 ## Optimized composites
 
 Occasionally a composed result isn't fast enough, and you write the same thing directly instead of
@@ -415,7 +433,7 @@ function they were given. The four `resolver`/`mutator` factories always return 
 the wrapped function is sync or async; the two `iterativeResolver` factories always return an
 `AsyncGenerator`.
 
-No error type: that's yours to define, and Quoin infers it from what your resolvers return.
+Error type: the implementer's per resolver, inferred from what it returns.
 
 ## Examples
 
@@ -472,6 +490,14 @@ no-build HTML page.
 npm install
 npm test
 ```
+
+## Porting this
+
+This is an idea as much as an implementation. If you want it in Go, Python, or Rust, please take
+it. The TypeScript package here is small on purpose, and most of what matters is decisions rather
+than code.
+
+MIT licensed. A link back to this repo is appreciated, and I'd love contributions of any improvements back to this project!
 
 ## Contributing
 

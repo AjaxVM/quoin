@@ -8,12 +8,12 @@ run_step() {
   step=$((step + 1))
   name="$1"
   shift
-  echo "[pre-push $step/$total] $name..."
+  echo "[pre-commit $step/$total] $name..."
   if ! "$@"; then
-    echo "[pre-push $step/$total] $name failed"
+    echo "[pre-commit $step/$total] $name failed"
     exit 1
   fi
-  echo "[pre-push $step/$total] $name passed"
+  echo "[pre-commit $step/$total] $name passed"
 }
 
 run_step "typecheck" npm run --silent typecheck:src

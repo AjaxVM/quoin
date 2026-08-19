@@ -1,3 +1,5 @@
+<img src="./assets/quoin-logo-h-name.svg" height="128" alt="Quoin" />
+
 # Contributing to Quoin
 
 Conventions for this repo. This file is the single source of truth for them: `README.md` and
@@ -105,11 +107,14 @@ npm run build                # tsc -p tsconfig.build.json (library only)
 npm run lint:fix             # eslint . --fix
 ```
 
-`typecheck`, `lint`, and `test` should pass before a change is considered done, and a husky pre-push
-hook runs them: commits stay cheap, and the gate sits where work leaves the machine. It only ever
-*checks*, never fixes. `typecheck:browser` isn't in that hook (`examples/` is Node-only and isn't
-what it's checking) but does run in CI: it's what actually backs `src/`'s claim of running
-unmodified in a browser, rather than that claim resting on nobody having imported a Node API yet.
+`typecheck`, `lint`, and `test` should pass before a change is considered done. Two husky hooks
+enforce that at different points: pre-commit runs the narrower `typecheck:src` / `lint:src` /
+`test:src` subset (`src/` only) on every commit, so the gate that fires most often stays fast;
+pre-push runs the full `typecheck` / `lint` / `test` (including `examples/`) before work leaves the
+machine. Both only ever *check*, never fix. `typecheck:browser` isn't in either hook (`examples/` is
+Node-only and isn't what it's checking) but does run in CI: it's what actually backs `src/`'s claim
+of running unmodified in a browser, rather than that claim resting on nobody having imported a Node
+API yet.
 
 `npm run lint --fix` does **not** work: npm swallows the flag rather than forwarding it. Use
 `npm run lint -- --fix`, or the `lint:fix` script.
