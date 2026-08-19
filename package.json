@@ -41,7 +41,6 @@
     "build": "npm run clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:src": "tsc -p tsconfig.build.json --noEmit",
-    "typecheck:browser": "tsc -p tsconfig.browser.json --noEmit",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "test:src": "cross-env NODE_OPTIONS=--experimental-vm-modules jest src",
     "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
