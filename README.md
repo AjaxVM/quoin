@@ -346,7 +346,7 @@ overlap and won't sum to their parent. Metrics record on every path (success, a 
 or a throw) but don't duplicate the outcome itself: that's already known to the caller directly,
 either from the return value or, in a composite, from each step it checks.
 
-**TODO:** This has to be solved - currently the metrics pool will grow and grow and grow, and since we encourage one scope in the app, it will grow insanely large.
+**TODO:** This has to be solved - currently the metrics pool will grow and grow and grow, and since we encourage one scope in the app, it will grow insanely large. Issue#5
 Options include:
 - a metrics wrapper, that will track metrics onto the scope as they are passed and collect/present as part of the output alongside the result from the resolver itself, ie `runWithMetrics(getUserResolver(...)) => { metrics, result }`
   - This is probably cleanest, and leans toward a wrapper/transform concept I had in my first implementation but abandoned when it was unneeded later
