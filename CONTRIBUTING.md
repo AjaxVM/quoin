@@ -27,19 +27,11 @@ signature is a complex shape, so it takes `I`.
 
 ## Parameters
 
-`params` is what this call needs to know: an identity for what to act on, plus whatever
-configuration or options the call takes (a TTL, a force/cacheOnly flag, whatever the call
-requires). `value` is what to change about it, and is what separates a mutator from a resolver.
-`scope` is the application context a resolver executes within, the scope of its access:
-connections, clients, session.
-
-`params`/`TParams` is Quoin's own canonical term for the slot, used in its types and docs, but
-each resolver or mutator's own body is free to name its actual parameter whatever reads best
-(`identity`, `args`, `request`, …). TypeScript never sees that name past the function boundary, so
-this is a convention for consistency across the example suite, not something enforced.
-
-A resolver's scope must hold everything it *and everything it calls* will reach; several scopes are
-fine as long as that holds.
+`params`, `value`, and `scope` are the conventional parameter names used across the example suite
+— not enforced by TypeScript past the function boundary, just kept consistent for anyone reading
+multiple resolvers. What each actually means is interface documentation, not a repo convention, so
+it's documented once for consumers and contributors alike in
+[`docs/scope.md`](./docs/scope.md) — don't restate it here.
 
 ## Structure
 
@@ -95,6 +87,13 @@ source, would work just as well.
   possible to understand a system.
 - When a lint rule is wrong for a line, say so rather than reshaping the code around it:
   `// eslint-disable-next-line <rule> -- reason`.
+
+## Docs
+
+`/docs` and `Docs.md` are documentation, not scaffolding — treat drift the same as a failing check.
+If a PR changes a public function's signature, its return shape, or how a documented feature
+behaves, update the relevant `docs/` page in the same PR. A stale doc is worse than no doc: it
+actively misleads the next reader.
 
 ## Checks
 
