@@ -1,9 +1,9 @@
 # examples/
 
 A runnable, tested app. Not snippets. Two sources (sqlite + a mock HTTP API), a small server of
-its own, and a browser-side client talking to that server. See the root
-[README](../README.md#examples) for the file layout (a choice we found useful, not a rule) and what
-each resolver does; this covers what's here at a level up and how to actually run each piece.
+its own, and a browser-side client talking to that server. See [Organization](../docs/organization.md)
+for the general layout options and why base/composite-by-entity is the default used here. This
+covers what's here at a level up and how to actually run each piece.
 
 ## Run everything
 
