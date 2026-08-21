@@ -99,7 +99,7 @@ npm test
 
 See [`examples/README.md`](./examples/README.md) for how to run each piece, including the no-build
 HTML page that loads `dist/` straight into a browser. How resolvers are laid out across files is a
-separate question from the call shape itself: see [Organization](./docs/organization.md) for the
+separate question from the call shape itself: see [Code Organization](./docs/code-organization.md) for the
 options and tradeoffs.
 
 ## Porting this

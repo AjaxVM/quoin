@@ -1,7 +1,7 @@
 # examples/
 
 A runnable, tested app. Not snippets. Two sources (sqlite + a mock HTTP API), a small server of
-its own, and a browser-side client talking to that server. See [Organization](../docs/organization.md)
+its own, and a browser-side client talking to that server. See [Code Organization](../docs/code-organization.md)
 for the general layout options and why base/composite-by-entity is the default used here. This
 covers what's here at a level up and how to actually run each piece.
 

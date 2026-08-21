@@ -52,7 +52,7 @@ examples/
 ```
 
 This is the layout we've settled on, not a rule to follow: one file per resolver, or per data
-source, would work just as well. See [`docs/organization.md`](./docs/organization.md) for the fuller
+source, would work just as well. See [`docs/code-organization.md`](./docs/code-organization.md) for the fuller
 set of alternatives and why this one was chosen.
 
 - **One file per entity group, not per resolver.** `base/user.ts` holds every base user resolver

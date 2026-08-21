@@ -17,7 +17,7 @@ Reference documentation for Quoin, one page per concept. New here: start with
 - **[Mutators](./docs/mutators.md)** - base writes.
 - **[Composites](./docs/composites.md)** - building a call from other calls: the guard, the scope
   rule, atomicity, optimized composites.
-- **[Organization](./docs/organization.md)** - laying resolvers and mutators out across files: the
+- **[Code Organization](./docs/code-organization.md)** - laying resolvers and mutators out across files: the
   options, their tradeoffs, and the recommended default.
 - **[Metrics](./docs/metrics.md)** - turning on call timing and reading it back.
 - **[React](./docs/react.md)** - `QuoinProvider` and the three hooks.

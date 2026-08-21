@@ -1,8 +1,7 @@
-# Organization
+# Code Organization
 
-Quoin doesn't prescribe a file layout, only the call shape. How you split resolvers and mutators
-across files is a separate question, and a few answers show up in practice, each with a real
-tradeoff.
+How you split resolvers and mutators across files is a separate question from the call shape, and a few general patterns stand out for their usefulness, each with a real tradeoff.
+That said, Quoin is all about the pattern of resolvers, not enforcing a particular code organization.
 
 ## Base/composite split, one file per entity
 
@@ -35,17 +34,15 @@ alone. Useful if you want scope requirements obvious without opening any file.
 Worth trying, but it tends not to hold up: composites cross sources often enough (a user row from
 the DB plus posts from an API, say) that once composites make up a meaningful share of the
 resolvers, this split stops telling you much. Base resolvers fit it fine. Composites just don't
-have one source to file under.
+always have a single source to file under.
 
 ## One file per resolver/mutator
 
 Finest granularity. Easiest to find one specific resolver by filename, and diffs stay small and
 scoped.
 
-Costs the same thing CLAUDE.md asks for elsewhere: "a user should need to open as few files as
-possible to understand how a system functions." Once an entity has more than a couple of calls,
-seeing how they relate (which composite calls which base, what the whole entity's surface looks
-like) means opening several files instead of scrolling one.
+The tradeoff with this is that you will have the most files, and thus the most need for _another_ organization method to couple with this.
+While you get that very focused view of a specific resolver, the context of what other related resolvers are doing, or for composites touching the same entity multiple times, is split across many files.
 
 ## Split by entity alone
 

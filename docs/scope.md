@@ -50,7 +50,7 @@ createScope(app, {
 Both are opt-in: turning either on doesn't change a call's shape, only what's recorded or
 enforced around it.
 
-Nothing stops you having several scopes: one per source, or a fresh one per request. One rule
-applies to scopes passed to a composite: it has to carry everything the whole chain will reach.
+Since a scope is just a collection of context or state that is shared across resolvers, you can run as many as makes sense, whether that is one per source, or a fresh one per request.
+An important rule applies to scopes passed to a composite: it has to carry everything the whole chain will reach.
 See [the composite scope rule](./composites.md#the-composite-scope-rule) for the full rule and its
 caveats.

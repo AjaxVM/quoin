@@ -30,8 +30,8 @@ Requires Node `>=14`. Ships as native ESM (`"type": "module"`). There's no Commo
 </script>
 ```
 
-There is currenty no public CDN, but this is not the main usecase, but it is just fine  for testing and prototyping.
-TODO: (Issue#10) package a minimized output and document using jsdelivr.com CDN to add that once installed.
+There is currently no public CDN. While this isn't the main use case, it is just fine for testing and prototyping.
+
 See [`examples/no-build.html`](../examples/no-build.html) for a complete, working page.
 
 Next: [Quickstart](./quickstart.md).

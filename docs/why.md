@@ -4,24 +4,12 @@ Data access grows messier as an application scales: every new source and integra
 maintenance burden that compounds over time. *Quoin* is the pattern I use to keep it uniform. Every
 read and write follows the same form, and complex results are built by composing simpler ones.
 
-**TODO:** This doesn't quite flow as correct now, since it is interrupted by the quote/intro above.
-
-> **Suggestion:** A messy data access layer has a shape. The same handful of symptoms show up
-> everywhere:
-
-That maintenance burden shows up as the same handful of symptoms.
-
-**TODO:** THis text is not quite what I'd write, need's a human editor pass:
-
-> **Suggestion:** Every function names and shapes its access differently: some take a connection,
-> some close over one. Some are `findUser`, others `getUserRow` or `loadUserWithOrders`. Nothing is
-> instrumented, so a slow endpoint can't be traced to a part: there are no parts to point at. And
-> failure handling is ad hoc: some paths throw, some return `null`, and callers learn the difference
-> by trial and error.
-
-Some functions take a connection, some close over one. Some are `findUser`, some `getUserRow`, some `loadUserWithOrders`.
-When an endpoint gets slow there's no way to ask which part is slow, because there are no parts.
-And failure handling ends up ad hoc: some paths throw, some return null, and callers guess.
+A messy data access layer reveals the same handful of symptoms almost everywhere: each
+function identifies and shapes its access differently (some take a connection, others close over one,
+still others simply name the function differently: `findUser` vs. `getUserRow` or `loadUserWithOrders`), nothing is
+instrumented so a slow endpoint can be difficult to trace because there are no parts to point at,
+and failure handling is ad hoc, with some paths throwing, some returning `null`, and callers
+learning the difference by trial and error.
 
 Quoin makes the layer uniform enough to reason about:
 
@@ -33,17 +21,10 @@ Quoin makes the layer uniform enough to reason about:
 - **The chain is observable.** Turn metrics on and every call is timed and attributed to its
   position, so "the profile endpoint is slow" becomes "`getPostsByUserId` is slow".
 
-**TODO:** This should also get a human rewrite, the focus here should be on the fact this is encouraging functional programming patterns with a procedural, reproduceable flow
-
-> **Suggestion:** This is deliberately functional and procedural: a call runs exactly as invoked,
-> nothing more, nothing implied. That's the gain: execution stays traceable and consistent,
-> because the same inputs always produce the same call graph, and every effect traces back to a
-> specific call rather than to a reaction fired somewhere else that's hard to pin down. Everything
-> a call needs (connections, clients, session) is created once and passed in explicitly, so a
-> call operates on only what it was handed.
-
-No registry, no DI container. Things are created and passed in, and operate on what they were
-passed.
+The pattern and implementation are functional, but execution is procedural and reproducible - it is
+fully determined by the inputs. Every effect traces back to a specific call, not to a reaction or
+implicit side effect somewhere else. Everything a call needs (connections, clients, session) is
+created once and passed in explicitly, so a call operates on only what it was handed.
 
 ## Compared to other approaches
 
