@@ -25,6 +25,12 @@ are never attributed to each other.
 See [CONTRIBUTING.md](./CONTRIBUTING.md): type naming (`T` simple / `I` interface+complex),
 structure, and code style all live there. Don't restate them here.
 
+## Prose
+
+Avoid em dashes as the default way to join clauses. Favor commas, plain hyphens, parentheses, or
+splitting into a separate sentence instead. Em dashes and semicolons are for a genuinely punchy
+moment, not the default connective.
+
 ## Working on this repo
 
 - Examples are product, not scaffolding. The usage pattern is what this library actually sells, so

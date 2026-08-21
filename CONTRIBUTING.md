@@ -10,7 +10,7 @@ Conventions for this repo. This file is the single source of truth for them: `RE
 AI-assisted implementation is used throughout this repo, and welcome from contributors. The
 condition: a human directs it. Design and pattern decisions come from a person, not a model, and
 whoever opens a PR owns everything in it: you should be able to explain any line you submit,
-AI-written or not. If a PR is substantially AI-generated, say so; that's an expectation of honesty
+AI-written or not. If a PR is substantially AI-generated, say so. That's an expectation of honesty
 about process, not a gate.
 
 ## Type naming
@@ -27,19 +27,11 @@ signature is a complex shape, so it takes `I`.
 
 ## Parameters
 
-`params` is what this call needs to know: an identity for what to act on, plus whatever
-configuration or options the call takes (a TTL, a force/cacheOnly flag, whatever the call
-requires). `value` is what to change about it, and is what separates a mutator from a resolver.
-`scope` is the application context a resolver executes within, the scope of its access:
-connections, clients, session.
-
-`params`/`TParams` is Quoin's own canonical term for the slot, used in its types and docs, but
-each resolver or mutator's own body is free to name its actual parameter whatever reads best
-(`identity`, `args`, `request`, …). TypeScript never sees that name past the function boundary, so
-this is a convention for consistency across the example suite, not something enforced.
-
-A resolver's scope must hold everything it *and everything it calls* will reach; several scopes are
-fine as long as that holds.
+`params`, `value`, and `scope` are the conventional parameter names used across the example suite
+(not enforced by TypeScript past the function boundary, just kept consistent for anyone reading
+multiple resolvers). What each actually means is interface documentation, not a repo convention, so
+it's documented once for consumers and contributors alike in
+[`docs/scope.md`](./docs/scope.md). Don't restate it here.
 
 ## Structure
 
@@ -51,7 +43,7 @@ fine as long as that holds.
 
 ```
 examples/
-  db/, api/            sources — connections, query helper, HTTP client
+  db/, api/            sources: connections, query helper, HTTP client
   resolvers/
     base/user.ts       resolvers and mutators over one source
     base/order.ts
@@ -60,16 +52,17 @@ examples/
 ```
 
 This is the layout we've settled on, not a rule to follow: one file per resolver, or per data
-source, would work just as well.
+source, would work just as well. See [`docs/code-organization.md`](./docs/code-organization.md) for the fuller
+set of alternatives and why this one was chosen.
 
 - **One file per entity group, not per resolver.** `base/user.ts` holds every base user resolver
-  *and* mutator; `composite/user.ts` holds the composite ones. `user.ts` existing at both levels is
+  *and* mutator. `composite/user.ts` holds the composite ones. `user.ts` existing at both levels is
   the point: it shows at a glance how the entity's resolvers build up.
 - **`base/` and `composite/` are separate directories** so a resolver's shape is visible from its
   path before you open it.
-- **Composites import what they call directly** — base resolvers or other composites. What a
+- **Composites import what they call directly**: base resolvers or other composites. What a
   composite composes is part of its implementation, not a dependency handed in. Don't reach for
-  injection to make a composite reusable across environments; write the environment's own bases and
+  injection to make a composite reusable across environments. Write the environment's own bases and
   its own composites over them.
 - **Sources hold no resolvers and no composition.** They may return results where their
   failures are anticipated, and should throw on what is a bug: compare `api/client.ts`, where an
@@ -96,11 +89,18 @@ source, would work just as well.
 - When a lint rule is wrong for a line, say so rather than reshaping the code around it:
   `// eslint-disable-next-line <rule> -- reason`.
 
+## Docs
+
+`/docs` and `Docs.md` are documentation, not scaffolding: treat drift the same as a failing check.
+If a PR changes a public function's signature, its return shape, or how a documented feature
+behaves, update the relevant `docs/` page in the same PR. A stale doc is worse than no doc: it
+actively misleads the next reader.
+
 ## Checks
 
 ```
 npm run typecheck    # tsc --noEmit across src/ and examples/
-npm run lint          # eslint — correctness and style
+npm run lint          # eslint, correctness and style
 npm test               # jest
 npm run build           # tsc -p tsconfig.build.json (library only)
 npm run lint:fix        # eslint . --fix
@@ -108,12 +108,12 @@ npm run lint:fix        # eslint . --fix
 
 `typecheck`, `lint`, `test`, and `build` should pass before a change is considered done. Two husky
 hooks enforce that at different points: pre-commit runs the narrower `typecheck:src` / `lint:src` /
-`test:src` subset (`src/` only) on every commit, so the gate that fires most often stays fast;
-pre-push runs `typecheck` / `lint` / `test` (including `examples/`) plus `build`, before work
-leaves the machine — `build` is there alongside the full `typecheck` because it's the one that
-actually proves `src/` has no Node/Jest dependency (see below). Both only ever *check*, never fix.
+`test:src` subset (`src/` only) on every commit, so the gate that fires most often stays fast.
+Pre-push runs `typecheck` / `lint` / `test` (including `examples/`) plus `build` before work leaves
+the machine. `build` is there alongside the full `typecheck` because it's the one that actually
+proves `src/` has no Node/Jest dependency (see below). Both only ever *check*, never fix.
 
-`tsconfig.build.json` — what both `typecheck:src` and `build` use — sets `types: []`, so `src/` is
+`tsconfig.build.json` (what both `typecheck:src` and `build` use) sets `types: []`, so `src/` is
 checked and built with zero ambient Node/Jest globals available. That's what backs `src/`'s claim
 of running unmodified in a browser (see `examples/no-build.html`, which loads `dist/` straight into
 a `<script type="module">`): a stray Node-only reference fails the build itself, on every commit,
